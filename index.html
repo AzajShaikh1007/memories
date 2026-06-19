@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Game of Memories ❤️</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rose:#d63384;
+  --rose-dark:#a02463;
+  --rose-light:#fbe4ee;
+  --cream:#fff7f9;
+  --ink:#3a2c33;
+  --gold:#e8b86d;
+}
+
+*{box-sizing:border-box}
+
+body{
+  font-family:'Quicksand',Arial,sans-serif;
+  margin:0;
+  background:linear-gradient(180deg,var(--cream),#ffeef4 60%);
+  color:var(--ink);
+  min-height:100vh;
+}
+
+h1,h2{
+  font-family:'Playfair Display',Georgia,serif;
+  color:var(--rose-dark);
+  margin:0 0 14px;
+}
+
+h1{font-size:clamp(1.5rem,6vw,2.4rem)}
+h2{font-size:clamp(1.2rem,5vw,1.7rem)}
+
+p{font-size:clamp(0.95rem,3.6vw,1.05rem);line-height:1.7}
+
+.screen{
+  display:none;
+  min-height:100vh;
+  padding:28px 16px 50px;
+  box-sizing:border-box;
+  text-align:center;
+}
+.active{display:flex;flex-direction:column;align-items:center}
+
+.btn{
+  background:var(--rose);
+  color:#fff;
+  border:none;
+  padding:13px 28px;
+  border-radius:30px;
+  cursor:pointer;
+  margin:10px;
+  font-family:'Quicksand',sans-serif;
+  font-weight:700;
+  font-size:1rem;
+  letter-spacing:.3px;
+  box-shadow:0 6px 16px rgba(214,51,132,.3);
+  transition:transform .15s ease, box-shadow .15s ease;
+  min-height:48px;
+}
+.btn:active{transform:scale(.96);box-shadow:0 3px 8px rgba(214,51,132,.3)}
+
+.page-image{
+  width:100%;
+  max-width:420px;
+  height:auto;
+  display:block;
+  margin:18px auto;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(160,36,99,.15);
+}
+
+/* ---------- Puzzle ---------- */
+.puzzle-wrap{
+  width:100%;
+  max-width:420px;
+  margin:6px auto 18px;
+}
+
+.puzzle-label{
+  font-size:.85rem;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:var(--rose-dark);
+  font-weight:700;
+  margin:18px 0 8px;
+}
+
+.puzzle-grid{
+  display:grid;
+  gap:3px;
+  width:100%;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:0 8px 24px rgba(160,36,99,.18);
+}
+
+.slot,.piece{
+  width:100%;
+  aspect-ratio:var(--cell-ratio,1/1);
+  background-color:var(--rose-light);
+  background-repeat:no-repeat;
+  cursor:pointer;
+  position:relative;
+  border-radius:4px;
+  transition:transform .12s ease, box-shadow .12s ease, outline-color .12s ease;
+  outline:2px solid transparent;
+  outline-offset:-2px;
+}
+
+.slot{background-color:#f3d4e3}
+.slot.empty::after{
+  content:"";
+}
+.slot.filled{background-color:transparent}
+
+.piece{box-shadow:0 2px 5px rgba(0,0,0,.15)}
+.piece.selected,.slot.selected{
+  outline:3px solid var(--gold);
+  outline-offset:-3px;
+  transform:scale(.94);
+  box-shadow:0 0 0 4px rgba(232,184,109,.35);
+  z-index:2;
+}
+.slot.correct{outline:3px solid #4caf50;outline-offset:-3px}
+.slot.wrong-shake{animation:shake .4s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-4px)}
+  75%{transform:translateX(4px)}
+}
+
+.tray-empty-msg{
+  font-size:.85rem;
+  color:#a98;
+  padding:10px;
+}
+
+.progress-text{
+  font-size:.9rem;
+  color:var(--rose-dark);
+  font-weight:600;
+  margin-top:6px;
+}
+
+/* ---------- Question / final ---------- */
+.confetti-emoji{font-size:38px;animation:pop 1s infinite alternate}
+@keyframes pop{from{transform:scale(1)}to{transform:scale(1.18)}}
+
+input#answer{
+  width:90%;
+  max-width:320px;
+  padding:12px 14px;
+  border:2px solid var(--rose-light);
+  border-radius:10px;
+  font-family:'Quicksand',sans-serif;
+  font-size:1rem;
+  outline:none;
+}
+input#answer:focus{border-color:var(--rose)}
+
+.final-letter{
+  max-width:560px;
+  width:100%;
+  margin:auto;
+  line-height:1.85;
+  text-align:left;
+  background:#fff;
+  padding:26px 22px;
+  border-radius:16px;
+  box-shadow:0 10px 30px rgba(160,36,99,.15);
+}
+
+#confettiContainer{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  overflow:hidden;
+  z-index:9999;
+}
+.confetti-piece{
+  position:absolute;
+  top:-40px;
+  font-size:22px;
+  animation:fall 3s linear forwards;
+}
+@keyframes fall{
+  0%{transform:translateY(0) rotate(0deg);opacity:1}
+  100%{transform:translateY(100vh) rotate(540deg);opacity:0}
+}
+
+@media (max-width:380px){
+  .screen{padding:20px 10px 40px}
+  .btn{padding:11px 20px;font-size:.92rem}
+}
+</style>
+</head>
+<body>
+
+<div id="confettiContainer"></div>
+
+<div id="welcome" class="screen active">
+  <h1>❤️ Let's Play a Game of Memories ❤️</h1>
+  <img class="page-image" src="C:\Users\azajs\Downloads\dummy 3\A journey.png" alt="Journey" onerror="this.style.display='none'">
+  <button class="btn" onclick="show('instructions')">Start Journey</button>
+</div>
+
+<div id="instructions" class="screen">
+  <h2>Instructions</h2>
+  <img class="page-image" src="C:\Users\azajs\Downloads\dummy 3\Instructions.png" alt="Instructions" onerror="this.style.display='none'">
+  <p style="max-width:420px">Tap a piece below, then tap a spot on the board to place it. Tap a filled spot to swap or pick the piece back up.</p>
+  <button class="btn" onclick="startPuzzle(1)">Start</button>
+</div>
+
+<div id="puzzleScreen" class="screen">
+  <h2 id="puzzleTitle"></h2>
+  <p class="puzzle-label">Board</p>
+  <div class="puzzle-wrap">
+    <div id="board" class="puzzle-grid"></div>
+  </div>
+  <p class="puzzle-label">Pieces — tap to select</p>
+  <div class="puzzle-wrap">
+    <div id="pieces" class="puzzle-grid"></div>
+  </div>
+  <p id="progressText" class="progress-text"></p>
+  <button class="btn" onclick="checkPuzzle()">Done</button>
+</div>
+
+<div id="questionScreen" class="screen">
+  <div class="confetti-emoji">🎉✨🎉</div>
+  <h2>Memory Unlocked!</h2>
+  <p id="questionText"></p>
+  <input id="answer" type="text" placeholder="Your answer">
+  <br><br>
+  <button class="btn" onclick="nextStep()">Continue</button>
+</div>
+
+<div id="finalScreen" class="screen">
+  <h1>❤️ My Lovely Kavya ❤️</h1>
+  <div class="final-letter">
+    <p>If you've reached this page, it means you've patiently pieced together every memory, just as we've created so many beautiful memories together.</p>
+    <p>While you were solving these puzzles, I was preparing for something important. Today, I am undergoing surgery, and your blessings mean more to me than I can express.</p>
+    <p>Through every smile, conversation, and moment we've shared, you've become someone incredibly special to me. Your presence has brought happiness into my life during both good times and difficult ones.</p>
+    <p>As I head into the operation theatre, there is one thing I carry with me a hope for a successful surgery and the chance to continue creating many more memories with you.</p>
+    <p>When I am healthy again, there is something you will ask <b> 'Hegiddira' </b> and I will say <b> 'Nannu chennagiddini, Dayavittu banni nanu bheti madi'</b> .</p>
+    <p>Until then, all I ask for is your blessing, your prayers, and a little place in your heart.</p>
+    <p>With all my love,<br><b>Azaj ❤️</b></p>
+  </div>
+</div>
+
+<script>
+/* ----- Configure your puzzles here ----- */
+const ROWS = 4;   // rows per puzzle
+const COLS = 4;   // columns per puzzle
+
+const images = [
+  "Image1.jpeg",
+  "Image2.jpeg",
+  "Image3.jpeg"
+];
+
+const questions = [
+  "Where was this memory created?",
+  "What was the most memorable thing that happened that day?",
+  "What was your favorite part of this day?"
+];
+
+let currentPuzzle = 0;
+let pieces = [];          // {id, r, c, slotPos: null|"r-c", location:'tray'|'slot'}
+let selectedId = null;
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function bgStyleFor(el, r, c, src){
+  el.style.backgroundImage = `url(${src})`;
+  el.style.backgroundSize = `${COLS*100}% ${ROWS*100}%`;
+  const posX = COLS>1 ? (c*100/(COLS-1)) : 0;
+  const posY = ROWS>1 ? (r*100/(ROWS-1)) : 0;
+  el.style.backgroundPosition = `${posX}% ${posY}%`;
+}
+
+function startPuzzle(n){
+  currentPuzzle = n - 1;
+  selectedId = null;
+  show('puzzleScreen');
+  document.getElementById('puzzleTitle').innerText = "Puzzle " + n;
+
+  const board = document.getElementById('board');
+  const piecesEl = document.getElementById('pieces');
+  board.style.setProperty('--cell-ratio', '1/1');
+  piecesEl.style.setProperty('--cell-ratio', '1/1');
+  board.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+  piecesEl.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+
+  pieces = [];
+  let id = 0;
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      pieces.push({id:'p'+(id++), r, c, slotPos:null, location:'tray'});
+    }
+  }
+  // shuffle tray order
+  pieces.sort(()=>Math.random()-0.5);
+
+  render();
+}
+
+function render(){
+  const board = document.getElementById('board');
+  const piecesEl = document.getElementById('pieces');
+  board.innerHTML = '';
+  piecesEl.innerHTML = '';
+
+  const src = images[currentPuzzle];
+
+  // build slots first
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const pos = r+'-'+c;
+      const slot = document.createElement('div');
+      slot.className = 'slot empty';
+      slot.dataset.pos = pos;
+      const occupant = pieces.find(p=>p.slotPos===pos);
+      if(occupant){
+        slot.classList.remove('empty');
+        slot.classList.add('filled');
+        bgStyleFor(slot, occupant.r, occupant.c, src);
+        if(selectedId===occupant.id) slot.classList.add('selected');
+      }
+      slot.onclick = ()=>onSlotClick(pos);
+      board.appendChild(slot);
+    }
+  }
+
+  // tray pieces (still in 'tray')
+  const trayPieces = pieces.filter(p=>p.location==='tray');
+  if(trayPieces.length===0){
+    const msg = document.createElement('p');
+    msg.className = 'tray-empty-msg';
+    msg.innerText = 'All pieces placed — tap Done!';
+    piecesEl.appendChild(msg);
+  } else {
+    trayPieces.forEach(p=>{
+      const div = document.createElement('div');
+      div.className = 'piece';
+      bgStyleFor(div, p.r, p.c, src);
+      if(selectedId===p.id) div.classList.add('selected');
+      div.onclick = ()=>onPieceClick(p.id);
+      piecesEl.appendChild(div);
+    });
+  }
+
+  const placedCount = pieces.filter(p=>p.location==='slot').length;
+  document.getElementById('progressText').innerText = `${placedCount} / ${pieces.length} placed`;
+}
+
+function onPieceClick(id){
+  selectedId = (selectedId===id) ? null : id;
+  render();
+}
+
+function onSlotClick(pos){
+  if(selectedId===null){
+    const occupant = pieces.find(p=>p.slotPos===pos);
+    if(occupant){
+      selectedId = occupant.id;
+      render();
+    }
+    return;
+  }
+
+  const sel = pieces.find(p=>p.id===selectedId);
+  const occupant = pieces.find(p=>p.slotPos===pos && p.id!==sel.id);
+
+  if(occupant){
+    occupant.slotPos = (sel.location==='slot') ? sel.slotPos : null;
+    occupant.location = (sel.location==='slot') ? 'slot' : 'tray';
+  }
+
+  sel.slotPos = pos;
+  sel.location = 'slot';
+  selectedId = null;
+  render();
+}
+
+function launchConfetti(){
+  const container = document.getElementById("confettiContainer");
+  const icons = ["❤️","✨","💖","💕","🌹"];
+  for(let i=0;i<60;i++){
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.innerHTML = icons[Math.floor(Math.random()*icons.length)];
+    piece.style.left = Math.random()*100 + "vw";
+    piece.style.animationDelay = (Math.random()*0.8) + "s";
+    container.appendChild(piece);
+    setTimeout(()=>piece.remove(), 3200);
+  }
+}
+
+function checkPuzzle(){
+  const incomplete = pieces.some(p=>p.location!=='slot');
+  if(incomplete){
+    document.querySelectorAll('.slot.empty').forEach(s=>{
+      s.classList.add('wrong-shake');
+      setTimeout(()=>s.classList.remove('wrong-shake'), 400);
+    });
+    return;
+  }
+
+  const allCorrect = pieces.every(p=>p.slotPos === (p.r+'-'+p.c));
+
+  if(!allCorrect){
+    document.querySelectorAll('.slot').forEach(s=>{
+      const occ = pieces.find(p=>p.slotPos===s.dataset.pos);
+      if(occ && s.dataset.pos !== (occ.r+'-'+occ.c)){
+        s.classList.add('wrong-shake');
+        setTimeout(()=>s.classList.remove('wrong-shake'), 400);
+      }
+    });
+    return;
+  }
+
+  document.querySelectorAll('.slot').forEach(s=>s.classList.add('correct'));
+  launchConfetti();
+
+  setTimeout(()=>{
+    document.getElementById('questionText').innerText = questions[currentPuzzle];
+    show('questionScreen');
+  }, 1400);
+}
+
+function nextStep(){
+  document.getElementById('answer').value = '';
+  currentPuzzle++;
+  if(currentPuzzle < images.length){
+    startPuzzle(currentPuzzle + 1);
+  } else {
+    show('finalScreen');
+  }
+}
+</script>
+</body>
+</html>
